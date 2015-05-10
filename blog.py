@@ -31,7 +31,6 @@ def main():
 
     args = parser.parse_args()
 
-    print(args)
     db=sql.create_engine('sqlite:///test.db', echo=False)
     metadata = sql.MetaData(bind=db)
 
@@ -59,7 +58,6 @@ def main():
         if args.subcommand=='add':
             title = args.add[0]
             content = args.add[1]
-            print('adding blog post with title %s' % title)
             post_id=posts_table.insert().execute(title=args.add[0], content=args.add[1]).inserted_primary_key[0]
             if args.category:
                 category=sql.select([categories_table]).where(
@@ -72,13 +70,13 @@ def main():
         if args.subcommand=='list':
             posts = sql.select([posts_table]).execute()
             for post in posts:
-                print(post)
+                print(post.id, '|', post.title, '|',  post.content)
         if args.subcommand=='search':
             posts = sql.select([posts_table]).where(
                                (posts_table.c.title.like('%{0}%'.format(args.search[0])))|\
                                 (posts_table.c.content.like('%{0}%'.format(args.search[0])))).execute()
             for post in posts:
-                print(post)
+                print(post.id, '|', post.title, '|', post.content)
     elif args.command=='category':
         if args.subcommand=='add':
             categories_table.insert().execute(name=args.add[0],)
@@ -92,11 +90,11 @@ def main():
                     (categories_table.c.name.like('%{0}%'.format(args.category)))\
                 ).execute()
                 for post in posts:
-                    print(post)
+                    print(post.title)
             else:
                 categories = sql.select([categories_table]).execute()
                 for category in categories:
-                    print(category)
+                    print(category.id, category.name)
         elif args.subcommand=='assign':
             categories_posts_table.insert().execute(post=args.post, category=args.category)
 
