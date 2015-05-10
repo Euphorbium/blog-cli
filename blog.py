@@ -1,5 +1,4 @@
 import argparse
-
 import sqlalchemy  as sql
 
 def main():
@@ -16,7 +15,7 @@ def main():
     category_assign.add_argument('post', type=int)
     category_assign.add_argument('category', type=int)
     category_list = category_subparsers.add_parser('list',)
-    category_list.add_argument('category', nargs='?', help='list all the posts assigned to listed categories. If no category is'
+    category_list.add_argument('category', nargs='?', help='list posts of a given category. If no category is'
                                'specified, lists all the categories', default=None)
     category_add.add_argument('add', nargs='+')
     post_parser = subparsers.add_parser('post', help="work with posts")
@@ -26,8 +25,8 @@ def main():
     post_search = post_subparsers.add_parser('search',)
     post_search.add_argument('search', nargs=1, help='search for blog posts containing given string')
     post_add.add_argument('add', nargs=2, help="add a blog post with a given title", type=str)
-    post_add.add_argument('--category', nargs="+", help="assign blog post to every listed category,"
-                          "if category does not exist, this creates it first", type=str)
+    post_add.add_argument('--category', help="assign blog post to a category,"
+                          "if category does not exist, it will be created", type=str, default=None)
 
 
     args = parser.parse_args()
@@ -61,7 +60,15 @@ def main():
             title = args.add[0]
             content = args.add[1]
             print('adding blog post with title %s' % title)
-            posts_table.insert().execute(title=args.add[0], content=args.add[1])
+            post_id=posts_table.insert().execute(title=args.add[0], content=args.add[1]).inserted_primary_key[0]
+            if args.category:
+                category=sql.select([categories_table]).where(
+                categories_table.c.name==args.category).execute().first()
+                if category:
+                    categories_posts_table.insert().execute(post=post_id, category=category.id)
+                else:
+                    category_id=categories_table.insert().execute(name=args.category,).inserted_primary_key[0]
+                    categories_posts_table.insert().execute(post=post_id, category=category_id)
         if args.subcommand=='list':
             posts = sql.select([posts_table]).execute()
             for post in posts:
