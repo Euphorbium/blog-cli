@@ -1,8 +1,8 @@
 import argparse
+import sys
 import sqlalchemy  as sql
 
-def main():
-
+def parse_args(args):
     parser = argparse.ArgumentParser(description='Manage your blog from command line',)
     subparsers = parser.add_subparsers(
         help='you should choose if you want to work with posts, or categories',
@@ -17,20 +17,21 @@ def main():
     category_list = category_subparsers.add_parser('list',)
     category_list.add_argument('category', nargs='?', help='list posts of a given category. If no category is'
                                'specified, lists all the categories', default=None)
-    category_add.add_argument('add', nargs='+')
+    category_add.add_argument('category',)
     post_parser = subparsers.add_parser('post', help="work with posts")
     post_subparsers = post_parser.add_subparsers(help="add, list or search",  dest='subcommand')
     post_add = post_subparsers.add_parser('add',)
     post_list = post_subparsers.add_parser('list',)
     post_search = post_subparsers.add_parser('search',)
-    post_search.add_argument('search', nargs=1, help='search for blog posts containing given string')
+    post_search.add_argument('search', help='search for blog posts containing given string')
     post_add.add_argument('add', nargs=2, help="add a blog post with a given title", type=str)
     post_add.add_argument('--category', help="assign blog post to a category,"
                           "if category does not exist, it will be created", type=str, default=None)
+    return parser.parse_args(args)
 
 
-    args = parser.parse_args()
-
+def main():
+    args = parse_args(sys.argv[1:])
     db=sql.create_engine('sqlite:///test.db', echo=False)
     metadata = sql.MetaData(bind=db)
 
@@ -41,8 +42,8 @@ def main():
                           sqlite_autoincrement=True
                           )
     categories_table=sql.Table('categories', metadata,
-                          sql.Column('id', sql.Integer, primary_key=True),
-                          sql.Column('name', sql.String(100),),
+                          sql.Column('id', sql.Integer, primary_key=True,),
+                          sql.Column('name', sql.String(100), unique=True),
                           sqlite_autoincrement=True
                                )
     categories_posts_table=sql.Table('categoriesPosts', metadata,
@@ -73,13 +74,13 @@ def main():
                 print(post.id, '|', post.title, '|',  post.content)
         if args.subcommand=='search':
             posts = sql.select([posts_table]).where(
-                               (posts_table.c.title.like('%{0}%'.format(args.search[0])))|\
-                                (posts_table.c.content.like('%{0}%'.format(args.search[0])))).execute()
+                               (posts_table.c.title.like('%{0}%'.format(args.search)))|\
+                                (posts_table.c.content.like('%{0}%'.format(args.search)))).execute()
             for post in posts:
                 print(post.id, '|', post.title, '|', post.content)
     elif args.command=='category':
         if args.subcommand=='add':
-            categories_table.insert().execute(name=args.add[0],)
+            categories_table.insert().execute(name=args.category,)
         elif args.subcommand=='list':
             if args.category:
                 posts = sql.select(
