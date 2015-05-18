@@ -29,76 +29,109 @@ def parse_args(args):
                           "if category does not exist, it will be created", type=str, default=None)
     return parser.parse_args(args)
 
+class Blog:
+
+    def __init__(self, engine='sqlite:///blog.db'):
+        try:
+            self.db=sql.create_engine(engine, echo=False)
+        except:
+            sys.stderr.write('failed to connect to a database')
+            raise
+        metadata = sql.MetaData(bind=self.db)
+
+        self.posts_table=sql.Table('posts', metadata,
+                            sql.Column('id', sql.Integer, primary_key=True, ),
+                            sql.Column('title', sql.String(100),),
+                            sql.Column('content', sql.Text,),
+                            sqlite_autoincrement=True
+                            )
+        self.categories_table=sql.Table('categories', metadata,
+                            sql.Column('id', sql.Integer, primary_key=True,),
+                            sql.Column('name', sql.String(100), unique=True),
+                            sqlite_autoincrement=True
+                                )
+        self.categories_posts_table=sql.Table('categoriesPosts', metadata,
+                            sql.Column('id', sql.Integer, primary_key=True),
+                            sql.Column('post', sql.Integer, sql.ForeignKey('posts.id'), nullable=False),
+                            sql.Column('category', sql.Integer, sql.ForeignKey('categories.id'), nullable=False),
+                            sqlite_autoincrement=True
+                                )
+        metadata.create_all()
+        conn=self.db.connect()
+
+    def post_add(self, title, content, category_name=None):
+        post_id=self.posts_table.insert().execute(title=title, content=content).inserted_primary_key[0]
+        if category_name:
+            category=sql.select([self.categories_table]).where(
+            self.categories_table.c.name==category_name).execute().first()
+            if category:
+                self.categories_posts_table.insert().execute(post=post_id, category=category.id)
+            else:
+                category_id=self.categories_table.insert().execute(name=category_name,).inserted_primary_key[0]
+                self.categories_posts_table.insert().execute(post=post_id, category=category_id)
+        return post_id
+
+    def post_list(self):
+        posts = sql.select([self.posts_table]).execute()
+        for post in posts:
+            print(post.id, '|', post.title, '|',  post.content)
+
+    def post_search(self, search):
+        posts = sql.select([self.posts_table]).where(
+                            (self.posts_table.c.title.like('%{0}%'.format(search)))|\
+                            (self.posts_table.c.content.like('%{0}%'.format(search)))).execute()
+        for post in posts:
+            print(post.id, '|', post.title, '|', post.content)
+
+    def category_add(self, category):
+        self.categories_table.insert().execute(name=category,)
+
+    def category_list(self, category=None):
+        if category:
+            raise Exception('NotImplemented')
+ #           posts = sql.select(
+ #               [self.posts_table, self.categories_table, self.categories_posts_table],
+ #               use_labels=True
+ #           ).where(
+ #               (self.posts_table.c.id==self.categories_posts_table.c.post) &\
+ #               (self.categories_table.c.id==self.categories_posts_table.c.category) &\
+ #               (self.categories_table.c.name == category)
+ #           ).execute()
+ #           if posts:
+ #               for post in posts:
+ #                   print(post)
+ #                   print(post.id, '|', post.title, '|', post.content)
+ #           else:
+ #               print('No posts found')
+        else:
+            categories = sql.select([self.categories_table]).execute()
+            for category in categories:
+                print(category.id, category.name)
+
+    def category_assign(self, post, category):
+        self.categories_posts_table.insert().execute(post=post, category=category)
+
+
 
 def main():
     args = parse_args(sys.argv[1:])
-    db=sql.create_engine('sqlite:///test.db', echo=False)
-    metadata = sql.MetaData(bind=db)
-
-    posts_table=sql.Table('posts', metadata,
-                          sql.Column('id', sql.Integer, primary_key=True, ),
-                          sql.Column('title', sql.String(100),),
-                          sql.Column('content', sql.Text,),
-                          sqlite_autoincrement=True
-                          )
-    categories_table=sql.Table('categories', metadata,
-                          sql.Column('id', sql.Integer, primary_key=True,),
-                          sql.Column('name', sql.String(100), unique=True),
-                          sqlite_autoincrement=True
-                               )
-    categories_posts_table=sql.Table('categoriesPosts', metadata,
-                          sql.Column('id', sql.Integer, primary_key=True),
-                          sql.Column('post', sql.Integer, sql.ForeignKey('posts.id'), nullable=False),
-                          sql.Column('category', sql.Integer, sql.ForeignKey('categories.id'), nullable=False),
-                          sqlite_autoincrement=True
-                               )
-    metadata.create_all()
-    conn=db.connect()
-
+    blog = Blog()
     if args.command=='post':
         if args.subcommand=='add':
             title = args.add[0]
             content = args.add[1]
-            post_id=posts_table.insert().execute(title=args.add[0], content=args.add[1]).inserted_primary_key[0]
-            if args.category:
-                category=sql.select([categories_table]).where(
-                categories_table.c.name==args.category).execute().first()
-                if category:
-                    categories_posts_table.insert().execute(post=post_id, category=category.id)
-                else:
-                    category_id=categories_table.insert().execute(name=args.category,).inserted_primary_key[0]
-                    categories_posts_table.insert().execute(post=post_id, category=category_id)
+            blog.post_add(title, content, category_name=args.category)
         if args.subcommand=='list':
-            posts = sql.select([posts_table]).execute()
-            for post in posts:
-                print(post.id, '|', post.title, '|',  post.content)
+            blog.post_list()
         if args.subcommand=='search':
-            posts = sql.select([posts_table]).where(
-                               (posts_table.c.title.like('%{0}%'.format(args.search)))|\
-                                (posts_table.c.content.like('%{0}%'.format(args.search)))).execute()
-            for post in posts:
-                print(post.id, '|', post.title, '|', post.content)
+            blog.post_search(args.search)
     elif args.command=='category':
         if args.subcommand=='add':
-            categories_table.insert().execute(name=args.category,)
+            blog.category_add(args.category)
         elif args.subcommand=='list':
-            if args.category:
-                posts = sql.select(
-                    [posts_table, categories_table, categories_posts_table]
-                ).where(
-                    (posts_table.c.id==categories_posts_table.c.post) &\
-                    (categories_table.c.id==categories_posts_table.c.category) &\
-                    (categories_table.c.name.like('%{0}%'.format(args.category)))\
-                ).execute()
-                for post in posts:
-                    print(post.title)
-            else:
-                categories = sql.select([categories_table]).execute()
-                for category in categories:
-                    print(category.id, category.name)
+            blog.category_list(args.category)
         elif args.subcommand=='assign':
-            categories_posts_table.insert().execute(post=args.post, category=args.category)
-
+            blog.category_assign(args.post, args.category)
 
 if __name__=="__main__":
     main()
