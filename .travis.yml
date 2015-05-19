@@ -5,5 +5,3 @@ install:
   - pip install python-coveralls
 script:
   - nosetests
-after_success:
-  - coveralls
