@@ -1,6 +1,8 @@
 import argparse
-from blog import parse_args
+from blog import parse_args, Blog
 from nose.tools import assert_equals
+from nose.plugins.capture import Capture
+import sqlalchemy as sql
 
 def test_parse_args():
     parsed = parse_args(['post', 'add', 'title', 'content'])
@@ -29,21 +31,45 @@ def test_parse_args():
         command='category', subcommand='assign', post=2, category=5), parsed)
 
 
+class TestBlog():
 
-def test_post_add():
-    pass
+    def setUp(self):
+        self.blog=Blog(engine='sqlite://')
+        self.out = Capture()
+        self.out.begin()
 
-def test_post_add_category():
-    pass
+    def teardown(self):
+        self.blog.metadata.drop_all()
+        self.out.afterTest()
 
-def test_post_list():
-    pass
+    def test_post_add(self):
+        self.blog.post_add('test post', 'test content')
+        expected_result = [(1, 'test post', 'test content')]
+        real_result = list(sql.select([self.blog.posts_table]).execute())
+        assert_equals(expected_result, real_result)
 
-def test_post_search():
-    pass
+    def test_post_add_category(self):
+        self.blog.post_add('test post', 'test content', category_name='test category')
+        expected_posts = [(1, 'test post', 'test content')]
+        expected_categories = [(1, 'test category', )]
+        expected_categories_posts = [(1, 1, 1)]
+        real_posts = list(sql.select([self.blog.posts_table]).execute())
+        real_categories = list(sql.select([self.blog.categories_table]).execute())
+        real_categories_posts = list(sql.select([self.blog.categories_posts_table]).execute())
+        assert_equals(expected_posts, real_posts)
+        assert_equals(expected_categories, real_categories)
+        assert_equals(expected_categories_posts, real_categories_posts)
 
-def test_category_add():
-    pass
+    def test_post_list(self):
+        self.blog.posts_table.insert().execute(title='test title', content='test content')
+        self.blog.post_list()
+        assert_equals(out.buffer, 'sadflkjsdlfk')
 
-def test_category_assign():
-    pass
+    def test_post_search(self):
+        pass
+
+    def test_category_add(self):
+        pass
+
+    def test_category_assign(self):
+        pass

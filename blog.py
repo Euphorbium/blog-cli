@@ -37,26 +37,26 @@ class Blog:
         except:
             sys.stderr.write('failed to connect to a database')
             raise
-        metadata = sql.MetaData(bind=self.db)
+        self.metadata = sql.MetaData(bind=self.db)
 
-        self.posts_table=sql.Table('posts', metadata,
+        self.posts_table=sql.Table('posts', self.metadata,
                             sql.Column('id', sql.Integer, primary_key=True, ),
                             sql.Column('title', sql.String(100),),
                             sql.Column('content', sql.Text,),
                             sqlite_autoincrement=True
                             )
-        self.categories_table=sql.Table('categories', metadata,
+        self.categories_table=sql.Table('categories', self.metadata,
                             sql.Column('id', sql.Integer, primary_key=True,),
                             sql.Column('name', sql.String(100), unique=True),
                             sqlite_autoincrement=True
                                 )
-        self.categories_posts_table=sql.Table('categoriesPosts', metadata,
+        self.categories_posts_table=sql.Table('categoriesPosts', self.metadata,
                             sql.Column('id', sql.Integer, primary_key=True),
                             sql.Column('post', sql.Integer, sql.ForeignKey('posts.id'), nullable=False),
                             sql.Column('category', sql.Integer, sql.ForeignKey('categories.id'), nullable=False),
                             sqlite_autoincrement=True
                                 )
-        metadata.create_all()
+        self.metadata.create_all()
         conn=self.db.connect()
 
     def post_add(self, title, content, category_name=None):
