@@ -74,7 +74,10 @@ class TestBlog():
         assert_equals(sys.stdout.getvalue().strip(), '2 | second | 2nd post')
 
     def test_category_add(self):
-        pass
+        self.blog.category_add('my category')
+        expected_result = [(1, 'my category')]
+        real_result = list(sql.select([self.blog.categories_table]).execute())
+        assert_equals(expected_result, real_result)
 
     def test_category_assign(self):
         pass
