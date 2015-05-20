@@ -87,4 +87,13 @@ class TestBlog():
         assert_equals(expected_result, real_result)
 
     def test_category_assign(self):
-        pass
+        self.blog.posts_table.insert().execute(title='test title', content='test content')
+        self.blog.categories_table.insert().execute(name='test category')
+        self.blog.category_assign(1, 1)
+        expected_result = [(1, 1, 1)]
+        real_result = list(sql.select([self.blog.categories_posts_table]).execute())
+        assert_equals(expected_result, real_result)
+        self.blog.category_assign(1, 2)
+        assert_equals(sys.stdout.getvalue().strip(), 
+        'post or category with given id does not exist')
+

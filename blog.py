@@ -1,6 +1,7 @@
 import argparse
 import sys
 import sqlalchemy  as sql
+from sqlalchemy.exc import IntegrityError
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Manage your blog from command line',)
@@ -38,6 +39,11 @@ class Blog:
             sys.stderr.write('failed to connect to a database')
             raise
         self.metadata = sql.MetaData(bind=self.db)
+
+        def _fk_pragma_on_connect(dbapi_con, con_record):
+            dbapi_con.execute('pragma foreign_keys=ON')
+
+        sql.event.listen(self.db, 'connect', _fk_pragma_on_connect)
 
         self.posts_table=sql.Table('posts', self.metadata,
                             sql.Column('id', sql.Integer, primary_key=True, ),
@@ -109,7 +115,10 @@ class Blog:
                 print(category.id, category.name)
 
     def category_assign(self, post, category):
-        self.categories_posts_table.insert().execute(post=post, category=category)
+        try:
+            self.categories_posts_table.insert().execute(post=post, category=category)
+        except IntegrityError:
+            print('post or category with given id does not exist')
 
 
 
