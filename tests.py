@@ -1,8 +1,9 @@
 import argparse
+import io
+import sys
+import sqlalchemy as sql
 from blog import parse_args, Blog
 from nose.tools import assert_equals
-from nose.plugins.capture import Capture
-import sqlalchemy as sql
 
 def test_parse_args():
     parsed = parse_args(['post', 'add', 'title', 'content'])
@@ -35,12 +36,12 @@ class TestBlog():
 
     def setUp(self):
         self.blog=Blog(engine='sqlite://')
-        self.out = Capture()
-        self.out.begin()
+        self.savedstdout = sys.stdout
+        sys.stdout = io.StringIO()
 
     def teardown(self):
         self.blog.metadata.drop_all()
-        self.out.afterTest()
+        sys.stdout = self.savedstdout
 
     def test_post_add(self):
         self.blog.post_add('test post', 'test content')
@@ -63,7 +64,7 @@ class TestBlog():
     def test_post_list(self):
         self.blog.posts_table.insert().execute(title='test title', content='test content')
         self.blog.post_list()
-        assert_equals(out.buffer, 'sadflkjsdlfk')
+        assert_equals(sys.stdout.getvalue().strip(), '1 | test title | test content')
 
     def test_post_search(self):
         pass
