@@ -67,7 +67,11 @@ class TestBlog():
         assert_equals(sys.stdout.getvalue().strip(), '1 | test title | test content')
 
     def test_post_search(self):
-        pass
+        self.blog.posts_table.insert().execute(title='test title', content='test content')
+        self.blog.posts_table.insert().execute(title='second', content='2nd post')
+        self.blog.posts_table.insert().execute(title='third', content='3rd')
+        self.blog.post_search('second')
+        assert_equals(sys.stdout.getvalue().strip(), '2 | second | 2nd post')
 
     def test_category_add(self):
         pass
