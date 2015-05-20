@@ -79,5 +79,12 @@ class TestBlog():
         real_result = list(sql.select([self.blog.categories_table]).execute())
         assert_equals(expected_result, real_result)
 
+    def test_category_list(self):
+        self.blog.categories_table.insert().execute(name='test category')
+        self.blog.category_list()
+        expected_result = '1 test category'
+        real_result = sys.stdout.getvalue().strip()
+        assert_equals(expected_result, real_result)
+
     def test_category_assign(self):
         pass
