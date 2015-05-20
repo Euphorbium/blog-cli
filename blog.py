@@ -94,21 +94,19 @@ class Blog:
 
     def category_list(self, category=None):
         if category:
-            raise Exception('NotImplemented')
- #           posts = sql.select(
- #               [self.posts_table, self.categories_table, self.categories_posts_table],
- #               use_labels=True
- #           ).where(
- #               (self.posts_table.c.id==self.categories_posts_table.c.post) &\
- #               (self.categories_table.c.id==self.categories_posts_table.c.category) &\
- #               (self.categories_table.c.name == category)
- #           ).execute()
- #           if posts:
- #               for post in posts:
- #                   print(post)
- #                   print(post.id, '|', post.title, '|', post.content)
- #           else:
- #               print('No posts found')
+            posts = sql.select(
+                [self.posts_table, self.categories_table, self.categories_posts_table],
+                use_labels=True
+            ).where(
+                (self.posts_table.c.id==self.categories_posts_table.c.post) &\
+                (self.categories_table.c.id==self.categories_posts_table.c.category) &\
+                (self.categories_table.c.name == category)
+            ).execute()
+            if posts:
+                for post in posts:
+                    print(post.posts_id, '|', post.posts_title, '|', post.posts_content)
+            else:
+                print('No posts found')
         else:
             categories = sql.select([self.categories_table]).execute()
             for category in categories:
