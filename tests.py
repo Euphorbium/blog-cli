@@ -1,9 +1,11 @@
 import argparse
 import io
 import sys
+
 import sqlalchemy as sql
-from blog import parse_args, Blog
 from nose.tools import assert_equals
+
+from blog import parse_args, Blog
 
 
 def test_parse_args():
@@ -18,7 +20,7 @@ def test_parse_args():
         add=['title', 'content']), parsed)
     parsed = parse_args(['post', 'list', ])
     assert_equals(argparse.Namespace(
-        command='post', subcommand='list',), parsed)
+        command='post', subcommand='list', ), parsed)
     parsed = parse_args(['post', 'search', 'word'])
     assert_equals(argparse.Namespace(
         command='post', subcommand='search', search='word'), parsed)
@@ -37,9 +39,9 @@ def test_parse_args():
         command='category', subcommand='assign', post=2, category=5), parsed)
 
 
-class TestBlog():
+class TestBlog:
 
-    def setUp(self):
+    def setup(self):
         self.blog = Blog(engine='sqlite://')
         self.savedstdout = sys.stdout
         sys.stdout = io.StringIO()
@@ -58,10 +60,10 @@ class TestBlog():
         self.blog.post_add('test post', 'test content',
                            category_name='test category')
         expected_posts = [(1, 'test post', 'test content')]
-        expected_categories = [(1, 'test category', )]
+        expected_categories = [(1, 'test category',)]
         expected_categories_posts = [(1, 1, 1)]
         real_posts = list(sql.select([self.blog.posts_table]).execute())
-        real_categories =\
+        real_categories = \
             list(sql.select([self.blog.categories_table]).execute())
         real_categories_posts = list(
             sql.select([self.blog.categories_posts_table]).execute())
