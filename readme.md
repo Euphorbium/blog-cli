@@ -29,7 +29,7 @@ If the category does not exist, it gets created.
 
 `--help` will give help message for any command
 
-#Testing
+# Testing
 
 run `nosetests`
 
